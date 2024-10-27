@@ -1,0 +1,745 @@
+<html>
+
+	<head>
+		
+		<title>Всесторонняя подготовка Вашего ребенка для профессиональной работы в кино, на телевидении и в театральных проектах.</title>
+		
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+            
+        <meta name="viewport" content="width=device-width" />
+
+        <link rel="stylesheet" type="text/css" href="css/main.css" />
+
+        <script type="text/javascript" src="js/jquery-2.1.0.min.js"></script>
+
+        <link type="text/css" href="css/pikachoose/right-without.css" rel="stylesheet" />
+        <script type="text/javascript" src="js/pikachoose/jquery.jcarousel.min.js"></script>
+        <script type="text/javascript" src="js/pikachoose/jquery.pikachoose.min.js"></script>
+
+        <script type="text/javascript">
+            $(document).ready(function(){
+
+                $("#pictures ul").PikaChoose({
+                    showCaption:false,
+                    text: {
+                        previous: "", 
+                        next: "" 
+                    }
+                });
+
+                $('#open-menu, #close-menu').on('click', function(){
+                    $('#menu').toggleClass("opened");
+                    return false;
+                });
+
+                $('#menu-items a.item, #sign-up').on('click', function(){
+
+                    var anchor = $(this).attr('anchor');
+                    if(anchor){
+                        $("html, body").animate({
+                                scrollTop: $('#' + anchor).offset().top + "px"
+                            }, 
+                            'slow', 
+                            function(){
+                                $('html, body').stop(true);
+                            }
+                        );
+                    }
+
+                    return false;
+
+                });
+
+                var myVideo = document.getElementsByTagName('video')[0];
+
+                myVideo.addEventListener('ended', function () {
+                    this.load();
+                    this.play();
+                }, false);
+
+                myVideo.play();
+
+                $('a.sign-up-send').on('click', function(){
+
+                    var form = $(this).parents('.sign-up-text:first');
+
+                    $('.sign-up-text div.error-input').removeClass('error-input');
+                    $('.sign-up-text .error-txt').text('');
+
+                    var error = false;
+                    
+                    $(form).find('.sign-up-data:not(".captcha-input")').each(function(){
+                        var input = $(this).find('input[type="text"]');
+
+                        if($(input).val().trim() == ''){
+                            $(this).find('div.sign-up-input').addClass('error-input');
+                            $(this).find('.error-txt').text('!  - поле не заполнено');
+                            error = true;
+                        }
+                    });
+
+                    var email = $(form).find('.sign-up-data.mail-input div.sign-up-input input[type="text"]').val().trim();
+
+                    if((email != '') && (!isEmailValid(email))){
+                        $(form).find('.sign-up-data.mail-input div.sign-up-input').addClass('error-input');
+                        $(form).find('.sign-up-data.mail-input .error-txt').text('!  - поле заполнено неверно');
+                        error = true;
+                    }
+
+                    if(error){
+                        return false;
+                    }
+
+                    var name = $(form).find('.sign-up-data.name-input div.sign-up-input input[type="text"]').val().trim();
+
+                    var information = 'Телефон: ' + $(form).find('.sign-up-data.phone-input div.sign-up-input input[type="text"]').val().trim();
+                        information += "\n" + 'Имя ребенка: ' + $(form).find('.sign-up-data.child-name-input div.sign-up-input input[type="text"]').val().trim();
+                        information += "\n" + 'Сколько лет ребенку: ' + $(form).find('.sign-up-data.age-input div.sign-up-input input[type="text"]').val().trim();
+
+                    var params = {
+                        subject: 'kidsstudio',
+                        name: name,
+                        email: email,
+                        description: information,
+                        seed: Math.round(Math.random()*10000),
+                        captcha: $(form).find('.sign-up-data.captcha-val-input div.sign-up-input input[type="text"]').val(),
+                        regsession: $(form).find('.sign-up-data.captcha-input div.sign-up-input input[name="regsession"]').val()
+                    };
+                        
+                    $.post(
+                        "../../api/tvz/feedback", 
+                        params,
+                        function(data){
+                            var error = $(data).find('error');
+
+                            if(error.length == 0){
+                                
+                                if(typeof alertID != 'undefined'){
+                                    clearTimeout(alertID);
+                                }
+
+                                var alert = $('#alert');
+                                $(alert).stop();
+
+                                $(alert).fadeIn(500);
+
+                                alertID = setTimeout(function() {
+                                    $('#alert').fadeOut(500);
+                                }, 4000);
+
+                                $(form).find('.sign-up-data:not(".captcha-input") input[type="text"]').val('');
+                                captcha_refresh();
+                                
+                                return false;
+                            }
+
+                            if(error.attr('code') == '02B' || error.attr('code') == '06K') {
+                                var captcha_val = $(form).find('.sign-up-data.captcha-val-input');
+                                $(captcha_val).find('div.sign-up-input').addClass('error-input');
+                                $(captcha_val).find('.error-txt').text('!  - поле заполнено неверно');
+                                $(captcha_val).find('div.sign-up-input input[type="text"]').val('');
+                                captcha_refresh();
+                            }
+
+                            if(error.attr('code') == '02A') {
+                                $(form).find('.sign-up-data.captcha-val-input div.sign-up-input').addClass('error-input');
+                                $(form).find('.sign-up-data.captcha-val-input .error-txt').text('!  - попробуйте позднее');
+                            }
+                        }
+                    );
+
+                    return false;
+                });
+
+                $(".captcha-refresh").on('click', function(){
+                    captcha_refresh();
+                    return false;
+                });
+
+            });
+
+            function captcha_refresh(){
+                $.get(
+                    "../../api/tvz/register-session/default.htm",
+                    function(data){
+                        var id = $(data).find("regsession").attr("id");
+                        
+                        if(id!=undefined && id.length > 0){
+                            $("img.captcha-img").attr("src", "../../m_images/captcha/"+ id +".png");
+                            $("input[name='regsession']").val(id);
+                        }
+                    }
+                );
+            }
+            function isEmailValid(email){
+                var result = true;
+                
+                //result = Validator.isEmail(email); валидатор плохо проверяет. pavelkolomitkin@gmail - считает валидным
+                
+                var reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+                result = reg.test(email);
+                
+                return result;
+            }
+
+            var isMobile = {
+                Android: function() {
+                    return navigator.userAgent.match(/Android/i);
+                },
+                BlackBerry: function() {
+                    return navigator.userAgent.match(/BlackBerry/i);
+                },
+                iOS: function() {
+                    return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+                },
+                Opera: function() {
+                    return navigator.userAgent.match(/Opera Mini/i);
+                },
+                Windows: function() {
+                    return navigator.userAgent.match(/IEMobile/i);
+                },
+                any: function() {
+                    return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+                }
+            };
+            
+        </script>
+
+        <!-- Google Analytics -->
+        <!--ipt type="text/javascript">
+            var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-15347927-1']);
+            _gaq.push(['_setDomainName', 'tvzavr.ru']);
+            _gaq.push(['_trackPageview']);
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();
+        </scri-->
+
+        <!-- Yandex.Metrika counter --><script type="text/javascript">(function (d, w, c) { (w[c] = w[c] || []).push(function() { try { w.yaCounter61610 = new Ya.Metrika({id:61610, clickmap:true, trackLinks:true, accurateTrackBounce:true,type:1}); } catch(e) { } }); var n = d.getElementsByTagName("script")[0], s = d.createElement("script"), f = function () { n.parentNode.insertBefore(s, n); }; s.type = "text/javascript"; s.async = true; s.src = (d.location.protocol == "https:" ? "https:" : "http:") + "//mc.yandex.ru/metrika/watch.js"; if (w.opera == "[object Opera]") { d.addEventListener("DOMContentLoaded", f, false); } else { f(); } })(document, window, "yandex_metrika_callbacks");</script><noscript><div><img src="../../../mc.yandex.ru/watch/61610@cnt-class=1" style="position:absolute; left:-9999px;" alt="" /></div></noscript><!-- /Yandex.Metrika counter -->
+    
+	</head>
+
+	<body>
+
+        <div id="alert">Ваше сообщение отправлено!</div>
+
+        <div id="menu">
+            
+            <a href="#" id="open-menu" class="open-button">
+               <span class="icon"></span>
+               <span class="icon"></span>
+               <span class="icon"></span>
+               <span class="text">меню</span>
+            </a>
+
+            <div id="opened-menu">
+
+                <div class="open-button">
+                   <span class="icon"></span>
+                   <span class="icon"></span>
+                   <span class="icon"></span>
+                </div>
+
+                <div class="menu-head">меню сайта</div>
+
+                <div id="menu-items">
+                    
+                    <a href="#" class="item" anchor="block-1">Начало</a>
+                    <a href="#" class="item" anchor="block-3">О школе</a>
+                    <a href="#" class="item" anchor="block-5">Наши преподаватели</a>
+                    <a href="#" class="item" anchor="sign-up-form">Записаться на кастинг</a>
+                    <a href="#" class="item" anchor="block-6">Услуги</a>
+                    <a href="#" class="item" anchor="block-4">Фото студии</a>
+                    <a href="#" class="item" anchor="block-map">Контакты</a>
+                    
+                </div>
+
+                <div class="menu-devider"></div>
+
+                <div class="phone-numbers"></div>
+                </div>
+
+
+                <a href="#" id="close-menu">
+                    <span>&#215;</span>
+                </a>
+
+            </div>
+
+        </div>
+
+        <div id="page-content">
+
+            <div id="block1-wrap">
+
+                <div id="video-wrap">
+                    
+                    <video height="110%" poster="img/video.jpg">
+                        <source src="video/video.mp4" type="video/mp4">
+                        <source src="video/video.webm" type="video/webm">
+                        <source src="video/video.ogg" type="video/ogg">
+                    </video>
+                    
+                </div>
+
+                <script type="text/javascript">
+
+                    if(isMobile.any()){
+                        $('#video-wrap').html('<img src="img/video.jpg" alt="" />');
+                    }
+                </script>
+
+                <div id="block-1-bg">
+
+                    <div id="page-title">
+                        <img src="img/title-logo.png" alt="" />
+                    </div>    
+
+                    <div id="block-1">
+                        
+                        <div class="title">
+                            <p>ОСНОВНАЯ ЗАДАЧА</p>
+                            <p>ТРЕНИНГОВ В СТУДИИ</p>
+                        </div>
+
+                        <div class="border"></div>
+                        
+                        <div class="sub-title">
+                            <p>Всесторонняя подготовка</p>
+                            <p>Вашего ребенка для профессиональной</p>
+                            <p>работы в кино, на телевидении и в театральных проектах.</p>
+                        </div> 
+
+                        <div class="border"></div>
+
+                        <a id="sign-up" href="#" anchor="sign-up-form">
+                            <p>записаться на кастинг</p>
+                           
+                        </a> 
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div id="block-2">
+                
+                <div id="block-2-text">КОЛИЧЕСТВО ЧЕЛОВЕК В ГРУППЕ 10<br/>(исходя из помещения и физических затрат педагога)</div>
+
+            </div>
+
+            <div id="block-3">
+                
+                <div class="text-block">
+
+                    <div class="title">О школе</div>
+
+                    <div class="text">
+                        <p>В студию юного актера «КИНОЗВЕЗДОЧКА» проводится кастинг для сьемок в собственных проектах, а также для дальнейшей работы в кино и на телевидении. Дети, прошедшие кастинг и подготовку в студии, будут принимать участие в съемках в собственных проектах, а также в детских юмористических сериалах, скечткомах, телевизионных передачах.<br />Участие в съемках принимают ВСЕ актеры, находящиеся в базе!
+                        </p>
+                        <p>Подготовка актеров для собственных проектов. Продолжительность курса 2 месяца.<br />Съемки начинаются на втором месяце обучения.</p>
+
+                        <div class="about-icons">
+
+                            <div class="column column-1">
+                                <img src="img/col-1-bg.png" alt="" />
+                                <div><b>Стоимость 40 000 в месяц</b></div>
+                            </div>
+
+                            <div class="column column-2">
+                                <img src="img/col-2-bg.png" alt="" />
+                                <div>Количество мест строго ограничено</div>
+                            </div>
+
+                            <div class="column column-3">
+                                <img src="img/col-3-bg.png" alt="" />
+                                <div><b>Набор проводится с 5 по 11 сентября</b></div>
+                            </div>
+
+                            <div class="clear"></div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div id="block-5">
+                
+                <div class="text-block">
+
+                    <div class="title">Наши преподаватели</div>
+
+                    <div class="text">
+                        У нас работают преподаватели, имеющие профильного образование, большой педагогический стаж в средне-специальных и высших учебных заведениях культуры и искусства, опыт работы в кино, театрах и на телевидении. Тесная связь с родителями, позволяет учитывать все замечания и пожелания по учебному процессу и делать его интересным, результативным и более комфортным.
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div id="sign-up-form" class="sign-up-form">  
+                
+                <div class="sign-up-text">   
+                    
+                    <div class="sign-up-title">ЗАПИСАТЬСЯ НА КАСТИНГ</div>
+
+                    <div class="sign-up-data name-input">
+                        
+                        <div class="sign-up-label">Ваше Имя или Ник</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+                        
+                    </div>
+
+                    <div class="sign-up-data child-name-input">
+                        
+                        <div class="sign-up-label">Имя ребенка</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+                        
+                    </div>
+
+                    <div class="sign-up-data age-input">
+                        
+                        <div class="sign-up-label">Возраст ребенка</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                        
+                    </div>
+
+                    <div class="clear"></div>
+
+
+                    <div class="sign-up-data phone-input" style="margin: 0.27272727272727% 0 0 19.01234567901235%">
+                        
+                        <div class="sign-up-label">Телефон</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                        
+                    </div>
+
+
+                    <div class="sign-up-data mail-input" style="margin-top: 0.27272727272727%">
+                        
+                        <div class="sign-up-label">Почта</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                        
+                    </div>
+
+                    <div class="clear"></div>
+
+
+                    <div class="sign-up-data captcha-input" style="margin: 0.27272727272727% 0 0 19.01234567901235%">
+                        
+                        <div class="sign-up-label">Защита от спама</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <img class="captcha-img" src="" alt="captcha" />
+                            <input type="hidden" name="regsession" value='' />
+                        </div>
+
+                        <a class="captcha-refresh" href="#">Обновить изображение</a>
+                        
+                    </div>
+
+                    <div class="sign-up-data captcha-val-input" style="margin-top: 0.27272727272727%">
+                        
+                        <div class="sign-up-label">Текс с картинки</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                    </div>
+
+                    <div class="clear"></div>
+
+                    <a class="sign-up-send" href="#">Отправить заявку</a>
+                    
+                </div>
+
+            </div>
+
+            <div id="block-6">
+                
+                <div class="text-block">
+
+                    <div class="title">Услуги</div>
+
+                    <div class="text">
+                        <div class="subtitle">ТРЕНИНГ — ЗАНЯТИЯ ПО ПРЕДМЕТАМ:</div>
+                        
+                        <ul>
+                            <li>Мастерство актерского искусства (МАИ). Мастерство телеведущего.</li>
+                            <li>Сценическая речь. (Техника речи-групповые занятия. Словесное действие-индивидуальные.)</li>
+                            <li>Сценическое движение. (Пластика-пантомима-сценический бой.)</li>
+                            <li>Камера -кастинг. (Основы актерского видео и фото портфолио.)</li>
+                        </ul>
+
+                        <div class="subtitle">ФАКУЛЬТАТИВЫ:</div>
+
+                        <ul>
+                            <li>Грим с профессиональными гримерами театра и кино.</li>
+                            <li>Практика с режиссерами кино и телевидения.</li>
+                            <li>Озвучание. Практические занятия с актерами озвучания.</li>
+                            <li>Работа с микрофоном-журналист-телеведущий. Занятия с телеведущими.</li>
+                            <li>Теория театра и кино.</li>
+                        </ul>
+
+                        <p>Встречи с известными актерами в рамках мастер-классов «Территория успеха».</p>
+
+                        <div class="subtitle">ДОПОЛНИТЕЛЬНЫЕ УСЛУГИ<br /><span style="font-style: italic; font-weight: 100;">(стоимость допуслуг уточняйте у администратора):</span></div>
+
+                        <ul>
+                            <li>Создание актерского фото портфолио.</li>
+                            <li>Создание актерского шоурила (визитка, визитка +клип + нарезка, отрывок в образе)</li>
+                            <li>Предоставление информации о проводимых кастингах</li>
+                            <li>Предоставление агентов (по желанию).</li>
+                            <li>Опубликование видео отчетов о занятиях на официальных страницах студии в соц. сетях.</li>
+                            <li>Летний лагерь (по желанию).</li>
+                            <li>Зимний-весенний лагерь (по желанию).</li>
+                            <li>Тренинг-занятия со студентами педагогических, театральных колледжей (режиссер театральной студии).</li>
+                            <li>Практические занятия- съемка рекламных и социальных роликов, участие в дипломных работах    учащихся и выпускников ВГИКа, а так же участие в проф. театральных проектах (по прохождении кастинга и приглашению режиссера).</li>
+                            <li>Индивидуальная подготовка абитуриентов в творческие ВУЗы.</li>
+                            <li>Индивидуальная подготовка абитуриентов в творческие ВУЗы.</li>
+                            <li>Предоставление помещения студии для проведения различного рода творческих кастингов.</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div id="block-4">
+                
+                <div class="text-block">
+
+                    <div class="title">Фото студии</div>
+
+                    <div class="text">
+                        Просторные и уютные залы полностью оборудованы для проведения полноценный занятий по всем направлениям творческого развития Вашего ребенка. Постановка этюдов, мини-пьес, творческих показов и отчетов, съемка портфолио и шоурилов обеспечивается современной техникой и оборудованием.
+                    </div>
+
+                    <div id="pictures" class="pikachoose">
+
+                        <ul>
+                            <li><img src="img/pictures/01.jpg"/></li>
+                            <li><img src="img/pictures/02.jpg"/></li>
+                            <li><img src="img/pictures/03.jpg"/></li>
+                            <li><img src="img/pictures/04.jpg"/></li>
+                            <li><img src="img/pictures/05.jpg"/></li>
+                            <li><img src="img/pictures/06.jpg"/></li>
+                            <li><img src="img/pictures/07.jpg"/></li>
+                            <li><img src="img/pictures/08.jpg"/></li>
+                            <li><img src="img/pictures/09.jpg"/></li>
+                            
+                        </ul>
+
+                        <div class="clear"></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="sign-up-form">  
+                
+                <div class="sign-up-text">   
+                    
+                    <div class="sign-up-title">ЗАПИСАТЬСЯ НА КАСТИНГ</div>
+
+                    <div class="sign-up-data name-input">
+                        
+                        <div class="sign-up-label">Ваше Имя или Ник</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+                        
+                    </div>
+
+                    <div class="sign-up-data child-name-input">
+                        
+                        <div class="sign-up-label">Имя ребенка</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+                        
+                    </div>
+
+                    <div class="sign-up-data age-input">
+                        
+                        <div class="sign-up-label">Возраст ребенка</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                        
+                    </div>
+
+                    <div class="clear"></div>
+
+
+                    <div class="sign-up-data phone-input" style="margin: 0.27272727272727% 0 0 19.01234567901235%">
+                        
+                        <div class="sign-up-label">Телефон</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                        
+                    </div>
+
+
+                    <div class="sign-up-data mail-input" style="margin-top: 0.27272727272727%">
+                        
+                        <div class="sign-up-label">Почта</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                        
+                    </div>
+
+                    <div class="clear"></div>
+
+
+                    <div class="sign-up-data captcha-input" style="margin: 0.27272727272727% 0 0 19.01234567901235%">
+                        
+                        <div class="sign-up-label">Защита от спама</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <img class="captcha-img" src="" alt="captcha" />
+                            <input type="hidden" name="regsession" value='' />
+                        </div>
+
+                        <script type="text/javascript">
+                            captcha_refresh();
+                        </script>
+
+                        <a class="captcha-refresh" href="#">Обновить изображение</a>
+                        
+                    </div>
+
+                    <div class="sign-up-data captcha-val-input" style="margin-top: 0.27272727272727%">
+                        
+                        <div class="sign-up-label">Текс с картинки</div>
+
+                        <div class="sign-up-input">
+                            <img src="img/signup-input.png" alt="" />
+                            <img class="error-input" src="img/signup-input-error.png" alt="" />
+                            <input type="text" autocomplete="off" />
+                        </div>
+
+                        <div class="error-txt"></div>
+
+                    </div>
+
+                    <div class="clear"></div>
+
+                    <a class="sign-up-send" href="#">Отправить заявку</a>
+                    
+                </div>
+
+            </div>
+
+            <div id="block-map">
+                
+                <div class="text-block">
+
+                    <div class="title">Контакты</div>
+
+                    <div class="text">
+                        Москва м. Багратионовская <br />
+                        Багратионовский проезд д 7. корп 3. Сектор Е3-14. Подъезд 18. Этаж 3.
+                    </div>
+
+                    <div id="map">
+                        <script type="text/javascript" charset="utf-8" src="../../../api-maps.yandex.ru/services/constructor/1.0/js/@sid=XHEWlrLtpIaRfnEHUYkDOXlzNXfVXUJe&width=100_25&height=345"></script>
+                    </div>
+
+                </div>
+
+            </div>
+            
+            <img id="footer-bg" src="img/footer-bg.png" alt="" />
+
+        </div>
+
+	</body>
+
+</html>
